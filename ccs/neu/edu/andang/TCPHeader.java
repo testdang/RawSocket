@@ -19,8 +19,11 @@ public class TCPHeader{
 	int checksum;
 	int urg_point;
 	
+	// calculating checksum on this byte array {assuming pseudo header + TCP header + TCP data}
+	byte [] ipPacket = { (byte)0xFF, (byte)0xFF, 46, (byte)0xFF, (byte)0xFF, 45, 00, 00, (byte)0x3c, (byte)0x1c, 46, 40, 00, 40, 06, (byte)0xb1, (byte)0xe6 };
+	
 	// TODO: Parse a TCP Header for an incoming TCP packet
-	public TCPHeader(byte[] header){
+	public TCPHeader(){
 		
 	}
 
@@ -35,6 +38,54 @@ public class TCPHeader{
 		this.win_size = win_size;
 		this.checksum = 0;
 		this.urg_point = 0;
+		this.generateChecksum(ipPacket);
+	}
+
+	private void generateChecksum(byte[] byteArray) {
+		int checksum = 0; 
+		byteArray = new byte[] { (byte)0xFF, (byte)0xFF, 46, (byte)0xFF, (byte)0xFF, 45, 00, 00, (byte)0x3c, (byte)0x1c, 46, 40, 00, 40, 06, (byte)0xb1, (byte)0xe6 };
+		
+		// if the byte array has odd number of octets, padding a zero byte
+		byte[] stream ;
+		if (byteArray.length % 2 != 0) {
+			stream = new byte[byteArray.length+1];
+			for (int i=0; i< byteArray.length; i++) {
+				stream[i] = byteArray[i];
+			}
+			stream[byteArray.length] = 0;
+			System.out.println(stream.length);
+		} else {
+			stream = new byte[byteArray.length];
+			for (int i=0; i< byteArray.length; i++)
+				stream[i] = byteArray[i];
+		}		
+		
+
+		// adjacent 8 bit words are stored as a short, 
+		// sum up the 16 bit shorts and compute 1's complement for checksum
+		for (int c=0; c < stream.length; c=c+2 ) {
+			int firstByte = Byte.valueOf(stream[c]).intValue();
+			
+			// to convert it to unsigned value
+			firstByte = firstByte&255;
+			int shifted = (firstByte<<8);
+			System.out.println("The shifted-->"+shifted +" "+Integer.toHexString(shifted));
+			int nextbyte = stream[c+1]&255;
+			System.out.println("The next byte-->"+Integer.toHexString(nextbyte));
+			int twoBytesGrouping = (shifted + (stream[c+1]&255));
+			System.out.println("The exor result-->"+Integer.toHexString(twoBytesGrouping));
+			checksum = checksum + twoBytesGrouping;
+			
+			//adding the 17th odd bit to the checksum to keep it 16 bit word
+			if (checksum > 65535)
+				checksum = checksum - 65535 + 1;		
+			System.out.println("The sum "+checksum);
+		}
+		System.out.println("The sum in hex--> "+Long.toHexString(checksum));
+		//taking one's complement of the result
+		System.out.println("The Checksum after one's complement-->"+Integer.toHexString(~checksum&0xFFFF));
+
+		
 	}
 
 	// Generate the TCP Header in a byte array format
