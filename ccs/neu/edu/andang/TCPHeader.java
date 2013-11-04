@@ -63,6 +63,8 @@ public class TCPHeader{
 		return header;
 	}
 
+	public void setCheckSum(int checksum){this.checksum = checksum;}
+
 	public int getSourcePort(){return this.source_port;}
 
 	public int getDestinationPort(){return this.destination_port;}
