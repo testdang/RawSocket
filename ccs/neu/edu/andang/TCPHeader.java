@@ -21,7 +21,17 @@ public class TCPHeader{
 	
 	// TODO: Parse a TCP Header for an incoming TCP packet
 	public TCPHeader(byte[] header){
-		
+		if (header.length == 20) {
+			source_port = (int)(((header[0]<<8)&65280)|(header[1]&255));
+			destination_port = (int)(((header[2]<<8)&65280)|(header[3]&255));
+			seq_num = (long)(((header[4]<<24)&4278190080l)|((header[5]<<16)&16711680l)|((header[6]<<8)&65280)|(header[7]&255));
+			ack_num = (long)(((header[8]<<24)&4278190080l)|((header[9]<<16)&16711680l)|((header[10]<<8)&65280)|(header[11]&255));
+			data_offset = (byte)((header[12]>>4)&15);
+			flags = (byte)(header[13]&63);
+			win_size = (int)(((header[14]<<8)&65280)|(header[15]&255));
+			checksum = (int)(((header[16]<<8)&65280)|(header[17]&255));
+			urg_point = (int)(((header[18]<<8)&65280)|(header[19]&255));
+		}
 	}
 
 	// Create a TCP Header for an outgoing TCP packet
@@ -95,7 +105,7 @@ public class TCPHeader{
 
 	public boolean isFINFlagOn(){return (boolean)((flags&1) == 1);}
 	
-	private void print() {
+	public void print() {
 		byte[] head = getHeader();
 		for (int j=0; j<head.length; j++) {
 			System.out.format("%02X ", head[j]);
