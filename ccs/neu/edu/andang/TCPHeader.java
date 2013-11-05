@@ -2,6 +2,8 @@ package ccs.neu.edu.andang ;
 
 import java.nio.ByteBuffer ;
 import java.util.Arrays ;
+
+import ccs.neu.edu.andang.Util;
 // TODO
 // TCPHeader: represent the header of a TCP packet
 // it also allow packets with optional fields
@@ -18,16 +20,15 @@ public class TCPHeader{
 	int win_size;
 	int checksum;
 	int urg_point;
-	
+	// Checksum is calculated on pseudo header + TCP header + TCP data}
+	byte [] tcpPacket = { (byte)0x45, (byte)0x00, (byte)0x00, (byte)0x3c,  (byte)0x1c, (byte)0x46, (byte)0x40, (byte)0x00, (byte)0x40, (byte)0x06, (byte)0x00, (byte)0x00, (byte)0xac, (byte)0x10, (byte)0x0a, (byte)0x63, (byte)0xac, (byte)0x10, (byte)0x0a, (byte)0x0c };
+	byte [] pseudoHeaderIP = { (byte)0xFF, (byte)0xFF, 46, (byte)0xFF, (byte)0xFF, 45, 00, (byte)0x3c, 06 };
+
 	// TODO: Parse a TCP Header for an incoming TCP packet
 	public TCPHeader(){
 		
 	}
-
-	public int length(){
-		return BASE_HEADER_SIZE ;
-	}
-
+	
 	// Create a TCP Header for an outgoing TCP packet
 	public TCPHeader(int source_port, int destination_port, long seq_num, long ack_num, byte flags, int win_size) {
 		this.source_port = source_port;
@@ -37,9 +38,14 @@ public class TCPHeader{
 		this.data_offset = BASE_HEADER_SIZE / 4 ;
 		this.flags = flags;
 		this.win_size = win_size;
-		this.checksum = 0;
 		this.urg_point = 0;
+		this.checksum = generateIPChecksum(tcpPacket, pseudoHeaderIP);
 	}
+
+	public int length(){
+		return BASE_HEADER_SIZE ;
+	}
+
 
 	public byte[] toByteArray(){
 		return getHeader() ;	
@@ -108,6 +114,27 @@ public class TCPHeader{
 			System.out.format("%02X ", head[j]);
 		}
 		System.out.println();
+	}
+	
+	private int generateIPChecksum(byte[] byteArray, byte[] pseudoHeader) {
+		int sum = 0; 		
+		//add TCP pseudo header containing src and dest IP addresses as 16 bit words
+		int j = 0;
+		for (j=0; j<4; j=j+2) {
+			int srcHalfIP = (pseudoHeader[j]&255)<<8 + (pseudoHeader[j+1]);
+			sum = sum + srcHalfIP;
+		}		
+		for (j=4; j<8; j=j+2) {
+			int destHalfIP = (pseudoHeader[j]&255)<<8 + (pseudoHeader[j+1]);
+			sum = sum + destHalfIP;
+		}
+		
+		//add protocol number->6 (last byte) and TCP packet length
+		sum = sum + pseudoHeader[j] + byteArray.length; // not sure if the is TCP packet size or zero
+		// byteArray --> TCPPacket = TCP header + data ( TCP heaader gets added below in checksum API, I think we can keep it 0, not sure though )
+		
+		sum = sum + Util.generateChecksum(byteArray);
+		return sum;
 	}
 	
 	public static void main(String args[]){
